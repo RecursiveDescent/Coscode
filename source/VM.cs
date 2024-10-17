@@ -16,6 +16,8 @@ namespace Coscode {
         MUL = 8,
         DIV = 9,
 
+        RETURN = 10,
+
         JE,
         JNE,
         JMP,
@@ -193,11 +195,15 @@ namespace Coscode {
 
         private long Strings = 0;
 
+        private long Funcs = 0;
+
         private BinaryReader Data;
 
         public Stack<Frame> FrameStack = new Stack<Frame>();
 
         public Stack<Value> Stack = new Stack<Value>();
+
+        public Dictionary<string, long> FuncTable = new Dictionary<string, long>();
 
         public List<Action<VM>> NativeFuncs = new List<Action<VM>>();
 
@@ -224,6 +230,24 @@ namespace Coscode {
             return chars;
         }
 
+        private long ReadFunc(long offset) {
+            long pos = Data.BaseStream.Position;
+
+            Data.BaseStream.Seek(Funcs + offset, SeekOrigin.Begin);
+
+            while (Data.PeekChar() != 0) {
+                Data.ReadChar();
+            }
+
+            Data.ReadChar();
+
+            long func = Data.ReadInt64();
+
+            Data.BaseStream.Seek(pos, SeekOrigin.Begin);
+
+            return func;
+        }
+
         public void Step() {
             byte op = Data.ReadByte();
 
@@ -241,11 +265,17 @@ namespace Coscode {
                     Stack.Push(new Value(VType.I64, Data.ReadUInt64()));
                     break;
                 case Opcode.PUSHSTR:
-                    Stack.Push(new Value(VType.String, ReadString((long) Data.ReadUInt64())));
+                    Stack.Push(new Value(VType.String, ReadString(Data.ReadInt64())));
 
                     break;
                 case Opcode.CALL:
-                    Console.WriteLine($"Call! Data = {Stack.Pop()}");
+                    // Console.WriteLine($"Call! Data = {Stack.Pop()}");
+
+                    long func = ReadFunc(Data.ReadInt64());
+
+                    FrameStack.Push(new Frame(Data.BaseStream.Position));
+
+                    Data.BaseStream.Seek(Code + func, SeekOrigin.Begin);
 
                     break;
                 case Opcode.CALL_NATIVE:
@@ -255,6 +285,10 @@ namespace Coscode {
                         throw new Exception($"Invalid native function index {i}");
 
                     NativeFuncs[i](this);
+
+                    break;
+                case Opcode.RETURN:
+                    Data.BaseStream.Seek(FrameStack.Pop().Return, SeekOrigin.Begin);
 
                     break;
                 case Opcode.ADD:
@@ -360,11 +394,31 @@ namespace Coscode {
 
             long strings = Data.ReadInt64();
 
+            Data.ReadInt64(); // Ignore strings size
+
+            long funcs = Data.ReadInt64();
+
             Code = code;
 
             Strings = strings;
 
+            Funcs = funcs;
+
             PC = code;
+
+            Data.BaseStream.Seek(funcs, SeekOrigin.Begin);
+
+            while (Data.PeekChar() != 0) {
+                List<char> name = new List<char>();
+
+                while (Data.PeekChar() != 0) {
+                    name.Add(Data.ReadChar());
+                }
+
+                Data.ReadChar();
+
+                FuncTable[new string(name.ToArray())] = Data.ReadInt64();
+            }
 
             Data.BaseStream.Seek(PC, SeekOrigin.Begin);
         }

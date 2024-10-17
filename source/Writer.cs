@@ -9,7 +9,7 @@ namespace Coscode {
 
         public byte Op;
 
-        public ulong? Arg;
+        public long? Arg;
 
         public void Write() {
             long pos = Writer.BaseStream.Position;
@@ -46,9 +46,12 @@ namespace Coscode {
             return Code.BaseStream.Position;
         }
 
-        public void AddFunction(string name, long loc) {
-            // Write null terminated string
+        public long StartFunction(string name) {
+            long loc = Code.BaseStream.Position;
 
+            long pos = Funcs.BaseStream.Position;
+
+            // Write null terminated string
             foreach (char c in name) {
                 Funcs.Write(c);
             }
@@ -57,9 +60,11 @@ namespace Coscode {
 
             // Write function location
             Funcs.Write(loc);
+
+            return pos;
         }
 
-        public DeferredWrite DeferredInstruction(byte ins, ulong? arg = null) {
+        public DeferredWrite DeferredInstruction(byte ins, long? arg = null) {
             DeferredWrite write = new DeferredWrite(Code);
 
             write.Location = Code.BaseStream.Position;
@@ -111,25 +116,43 @@ namespace Coscode {
             Start of string table: 8 bytes
         */
         public void Finish() {
+            long hsize = 64;
+
             // Start of code section (Offset from start of file)
-            OutWriter.Write(64ul);
+            OutWriter.Write(hsize);
 
             // Size of code section
             OutWriter.Write(Code.BaseStream.Length);
 
             // Start of string table
-            OutWriter.Write(64 + Code.BaseStream.Length);
+            OutWriter.Write(hsize + Code.BaseStream.Length);
 
-            Out.Seek(64, SeekOrigin.Begin);
+            // Size of string table
+            OutWriter.Write(Strings.BaseStream.Length);
+
+            // Start of function table
+            OutWriter.Write(hsize + Code.BaseStream.Length + Strings.BaseStream.Length);
+
+            // Size of function table
+            OutWriter.Write(Funcs.BaseStream.Length + 1);
+
+            Out.Seek(hsize, SeekOrigin.Begin);
 
             Code.BaseStream.Seek(0, SeekOrigin.Begin);
 
             Code.BaseStream.CopyTo(Out);
 
-            // Put string table at end of node section
+            // Put string table at end of code section
             Strings.BaseStream.Seek(0, SeekOrigin.Begin);
 
             Strings.BaseStream.CopyTo(Out);
+
+            // Put function table at end of strings
+            Funcs.BaseStream.Seek(0, SeekOrigin.Begin);
+
+            Funcs.BaseStream.CopyTo(Out);
+
+            Out.WriteByte(0); // Terminate function table with a null byte
         }
 
         public byte[] GetBytes() {

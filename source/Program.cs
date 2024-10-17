@@ -17,6 +17,28 @@ namespace Coscode {
 
             long str = wr.AddString("Hello World!");
 
+            DeferredWrite skip = wr.DeferredInstruction((byte) Opcode.JMP, 0);
+
+            long prntref = wr.StartFunction("Prnt");
+
+            wr.Instruction((byte) Opcode.PUSHSTR, str);
+
+            wr.Instruction((byte) Opcode.CALL_NATIVE, 0);
+
+            wr.Instruction((byte) Opcode.RETURN);
+
+            long mainref = wr.StartFunction("main");
+
+            long main = wr.Instruction((byte) Opcode.CALL, prntref);
+
+            skip.Arg = main;
+
+            skip.Write();
+
+            wr.Instruction((byte) Opcode.PUSHUI32, 1704);
+
+            wr.Instruction((byte) Opcode.CALL_NATIVE, 0);
+
             /*wr.Instruction((byte) Opcode.PUSHSTR, str);
 
             wr.Instruction((byte) Opcode.STORE);
@@ -26,18 +48,6 @@ namespace Coscode {
             wr.Instruction((byte) Opcode.PUSHSTR, str);
 
             wr.Instruction((byte) Opcode.CMP);*/
-
-            wr.Instruction((byte) Opcode.PUSHUI32, 1000);
-
-            wr.Instruction((byte) Opcode.PUSHUI32, 704);
-
-            wr.Instruction((byte) Opcode.ADD);
-
-            wr.Instruction((byte) Opcode.PUSHUI32, 1704);
-
-            wr.Instruction((byte) Opcode.GT);
-
-            wr.Instruction(2, 0);
 
             wr.Finish();
 
@@ -57,6 +67,10 @@ namespace Coscode {
 
             vm.Step();
 
+            vm.Step();
+
+            vm.Step();
+            
             vm.Step();
 
             vm.Step();
