@@ -105,9 +105,9 @@ namespace Coscode {
         public Value Sub(Value right) {
             switch (Type) {
                 case VType.I32:
-                    return new Value(VType.I32, Data + right.Data);
+                    return new Value(VType.I32, Data - right.Data);
                 case VType.I64:
-                    return new Value(VType.I64, Data + right.Data);
+                    return new Value(VType.I64, Data - right.Data);
                 default:
                     throw new Exception("Invalid type for subtraction");
             }
@@ -116,9 +116,9 @@ namespace Coscode {
         public Value Mul(Value right) {
             switch (Type) {
                 case VType.I32:
-                    return new Value(VType.I32, Data + right.Data);
+                    return new Value(VType.I32, Data * right.Data);
                 case VType.I64:
-                    return new Value(VType.I64, Data + right.Data);
+                    return new Value(VType.I64, Data * right.Data);
                 default:
                     throw new Exception("Invalid type for multiplication");
             }
@@ -188,10 +188,12 @@ namespace Coscode {
         }
     }
 
-    public class VM {
+    public class CCVM {
         private long PC = 0;
 
         private long Code = 0;
+
+        private long CodeSize = 0;
 
         private long Strings = 0;
 
@@ -205,7 +207,7 @@ namespace Coscode {
 
         public Dictionary<string, long> FuncTable = new Dictionary<string, long>();
 
-        public List<Action<VM>> NativeFuncs = new List<Action<VM>>();
+        public List<Action<CCVM>> NativeFuncs = new List<Action<CCVM>>();
 
         private void Jump(long offset) {
             PC = Code + offset;
@@ -324,17 +326,17 @@ namespace Coscode {
 
                     break;
                 case Opcode.JMP:
-                    Jump(Data.ReadInt32());
+                    Jump(Data.ReadInt64());
                     break;
                 case Opcode.JE:
-                    if (Stack.Pop().Data > 0)
-                        Jump(Data.ReadInt32());
+                    if (Stack.Pop().Data == 0)
+                        Jump(Data.ReadInt64());
                     
                     break;
 
                 case Opcode.JNE:
-                    if (Stack.Pop().Data == 0)
-                        Jump(Data.ReadInt32());
+                    if (Stack.Pop().Data != 0)
+                        Jump(Data.ReadInt64());
                     
                     break;
                 case Opcode.GT:
@@ -400,6 +402,8 @@ namespace Coscode {
 
             Code = code;
 
+            CodeSize = size;
+
             Strings = strings;
 
             Funcs = funcs;
@@ -423,11 +427,84 @@ namespace Coscode {
             Data.BaseStream.Seek(PC, SeekOrigin.Begin);
         }
 
-        public VM(Stream data) {
+        public void Run() {
+            while (PC < Code + CodeSize - 1)
+                Step();
+        }
+
+        public void DebugPrintCodeOps() {
+            long loc = Data.BaseStream.Position;
+
+            Data.BaseStream.Seek(Code, SeekOrigin.Begin);
+
+            while (Data.BaseStream.Position < Code + CodeSize) {
+                byte op = Data.ReadByte();
+
+                if (op != (byte) Opcode.NOP)
+                    Console.Write($"{Data.BaseStream.Position - Code - 1}: ");
+
+                if (op >= (byte) Opcode.LOAD && op <= (byte) Opcode.LOAD_END) {
+                    Console.WriteLine($"LOAD_{op - (byte) Opcode.LOAD}");
+
+                    continue;
+                }
+
+                if (op >= (byte) Opcode.STORE && op <= (byte) Opcode.STORE_END) {
+                    Console.WriteLine($"STORE_{op - (byte) Opcode.STORE}");
+
+                    continue;
+                }
+
+                switch (op) {
+                    case (byte) Opcode.NOP:
+                        break;
+                    case (byte) Opcode.PUSHUI32:
+                        Console.WriteLine($"PUSHUI32 {Data.ReadInt64()}");
+                        break;
+                    case (byte) Opcode.PUSHUI64:
+                        Console.WriteLine($"PUSHUI64 {Data.ReadInt64()}");
+                        break;
+                    case (byte) Opcode.PUSHSTR:
+                        long str = Data.ReadInt64();
+
+                        Console.WriteLine($"PUSHSTR ({str})[\"{new string(ReadString(str).ToArray())}\"]");
+                        break;
+                    case (byte) Opcode.JMP:
+                        Console.WriteLine($"JMP {Data.ReadInt64()}");
+
+                        break;
+                    case (byte) Opcode.ADD:
+                        Console.WriteLine("ADD");
+                        break;
+                    case (byte) Opcode.SUB:
+                        Console.WriteLine("SUB");
+                        break;
+                    case (byte) Opcode.MUL:
+                        Console.WriteLine("MUL");
+                        break;
+                    case (byte) Opcode.DIV:
+                        Console.WriteLine("DIV");
+                        break;
+                    case (byte) Opcode.CALL:
+                        Console.WriteLine($"CALL ({Data.ReadInt64()})");
+                        break;
+                    case (byte) Opcode.CALL_NATIVE:
+                        Console.WriteLine($"CALL_NATIVE {Data.ReadInt64()}");
+                        break;
+                    default:
+                        Console.WriteLine($"{(Opcode) op}");
+                        break;
+                }
+            }
+
+            Data.BaseStream.Seek(loc, SeekOrigin.Begin);
+        }
+
+        public CCVM(Stream data) {
             Data = new BinaryReader(data);
         }
         
-        public VM(byte[] data) {
+        public CCVM(byte[] data) {
             Data = new BinaryReader(new MemoryStream(data));
         }
     }

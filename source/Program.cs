@@ -1,33 +1,35 @@
 ﻿using System;
 using System.IO;
 using System.Reflection;
+using Coscode.Writer;
+using Coscode.Assembler;
 
 namespace Coscode {
     
 
     public class Program
     {
-        public static void Print(VM vm) {
+        public static void Print(CCVM vm) {
             Console.WriteLine(vm.Stack.Pop());
         }
 
         public static void Main(string[] args)
         {
-            Writer wr = new Writer();
+            CCWriter wr = new CCWriter();
 
-            long str = wr.AddString("Hello World!");
+            // long str = wr.AddString("Hello World!");
 
-            DeferredWrite skip = wr.DeferredInstruction((byte) Opcode.JMP, 0);
+            // DeferredWrite skip = wr.DeferredInstruction((byte) Opcode.JMP, 0);
 
-            long prntref = wr.StartFunction("Prnt");
+            // long prntref = wr.StartFunction("Prnt");
 
-            wr.Instruction((byte) Opcode.PUSHSTR, str);
+            // wr.Instruction((byte) Opcode.PUSHSTR, str);
 
-            wr.Instruction((byte) Opcode.CALL_NATIVE, 0);
+           //  wr.Instruction((byte) Opcode.CALL_NATIVE, 0);
 
-            wr.Instruction((byte) Opcode.RETURN);
+            // wr.Instruction((byte) Opcode.RETURN);
 
-            long mainref = wr.StartFunction("main");
+            /*long mainref = wr.StartFunction("main");
 
             long main = wr.Instruction((byte) Opcode.CALL, prntref);
 
@@ -37,7 +39,7 @@ namespace Coscode {
 
             wr.Instruction((byte) Opcode.PUSHUI32, 1704);
 
-            wr.Instruction((byte) Opcode.CALL_NATIVE, 0);
+            wr.Instruction((byte) Opcode.CALL_NATIVE, 0);*/
 
             /*wr.Instruction((byte) Opcode.PUSHSTR, str);
 
@@ -49,9 +51,13 @@ namespace Coscode {
 
             wr.Instruction((byte) Opcode.CMP);*/
 
-            wr.Finish();
+            // wr.Finish();
 
-            VM vm = new VM(wr.GetBytes());
+            CCCompiler compiler = new CCCompiler(new StreamReader("factorial_example.cc").ReadToEnd());
+
+            compiler.Compile();
+
+            CCVM vm = new CCVM(compiler.Output.GetBytes());
 
             vm.Load();
 
@@ -59,21 +65,11 @@ namespace Coscode {
 
             vm.FrameStack.Push(new Frame());
 
-            vm.Step();
+            vm.DebugPrintCodeOps();
 
-            vm.Step();
+            Console.WriteLine("-------------------------------------------------");
 
-            vm.Step();
-
-            vm.Step();
-
-            vm.Step();
-
-            vm.Step();
-            
-            vm.Step();
-
-            vm.Step();
+            vm.Run();
         }
     }
 }

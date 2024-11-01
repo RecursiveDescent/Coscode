@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 
-namespace Coscode {
+namespace Coscode.Writer {
     public class DeferredWrite {
         public BinaryWriter Writer;
 
@@ -29,7 +29,7 @@ namespace Coscode {
         }
     }
 
-    public class Writer {
+    public class CCWriter {
         public MemoryStream Out = new MemoryStream();
 
         private BinaryWriter OutWriter;
@@ -159,7 +159,7 @@ namespace Coscode {
             return Out.GetBuffer();
         }
 
-        public Writer() {
+        public CCWriter() {
             OutWriter = new BinaryWriter(Out);
         }
     }
