@@ -1,5 +1,5 @@
 fact: i {
-    if i - 0 {
+    if ! (i != 1) {
         return 1
     }
 
@@ -7,5 +7,7 @@ fact: i {
 }
 
 main {
-    print(fact(6))
+    while readi32() > 100 {
+        print(fact(6))
+    }
 }

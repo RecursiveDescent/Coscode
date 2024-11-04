@@ -1,19 +1,21 @@
 ﻿using System;
 using System.IO;
-using System.Reflection;
 using Coscode.Writer;
 using Coscode.Assembler;
 
 namespace Coscode {
-    
-
     public class Program
     {
         public static void Print(CCVM vm) {
             Console.WriteLine(vm.Stack.Pop());
         }
 
-        public static void Main(string[] args)
+        public static void ReadI32(CCVM vm) {
+            Console.Write("I32: ");
+            vm.Stack.Push(new Value(VType.U32, new ValueUnion(uint.Parse(Console.ReadLine()))));
+        }
+
+        public static void Main()
         {
             CCWriter wr = new CCWriter();
 
@@ -62,6 +64,8 @@ namespace Coscode {
             vm.Load();
 
             vm.NativeFuncs.Add(Print);
+
+            vm.NativeFuncs.Add(ReadI32);
 
             vm.FrameStack.Push(new Frame());
 

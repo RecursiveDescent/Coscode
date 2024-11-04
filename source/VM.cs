@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 
 namespace Coscode {
     public enum Opcode {
@@ -18,13 +19,21 @@ namespace Coscode {
 
         RETURN = 10,
 
-        JE,
-        JNE,
-        JMP,
+        JE = 11,
+        JNE = 12,
+        JMP = 13,
 
-        GT,
-        LT,
-        CMP,
+        GT = 14,
+        LT = 15,
+        CMP = 16,
+
+        // Bitwise operations
+        BIT_NEGATE = 17,
+        BIT_AND = 18,
+        BIT_OR = 19,
+        BIT_XOR = 20,
+        BIT_SHL = 21,
+        BIT_SHR = 22,
         
         // Range of load instructions
         LOAD = 100,
@@ -43,18 +52,62 @@ namespace Coscode {
 
     public enum VType {
         Bool,
-        I32,
-        I64,
+        U32,
+        U64,
         String,
         Ref
     }
 
+    // This is a union type used to save memory space.
+    #pragma warning disable CS0660
+    #pragma warning disable CS0661
+    [StructLayout(LayoutKind.Explicit)]
+	public struct ValueUnion {
+        [FieldOffset(0)]
+		public bool Bool = false;
+		[FieldOffset(0)]
+		public float Float = 0;
+		[FieldOffset(0)]
+		public uint UInt = 0;
+        [FieldOffset(0)]
+		public ulong ULong = 0;
+
+        public static bool operator ==(ValueUnion left, ValueUnion right) {
+            return left.ULong == right.ULong;
+        }
+
+        public static bool operator !=(ValueUnion left, ValueUnion right) {
+            return left.ULong != right.ULong;
+        }
+
+        public override string ToString() {
+            return $"ValueUnion{{ Bool = {Bool}, Float = {Float}, UInt = {UInt}, ULong = {ULong} }}";
+        }
+
+        public ValueUnion(bool b) {
+            Bool = b;
+        }
+
+        public ValueUnion(float f) {
+            Float = f;
+        }
+
+        public ValueUnion(uint u) {
+            UInt = u;
+        }
+
+        public ValueUnion(ulong ul) {
+            ULong = ul;
+        }
+	}
+
     public class Value {
         public VType Type;
 
+        // Strings are represented as a list to avoid allocations.
         public List<char> StrData = null;
 
-        public ulong Data = 0;
+        public ValueUnion Data;
 
         public Value Ref = null;
 
@@ -65,9 +118,6 @@ namespace Coscode {
 
         public bool Equals(Value right) {
             if (right == null)
-                return false;
-
-            if (Type != right.Type)
                 return false;
 
             if (Type == VType.String) {
@@ -87,10 +137,10 @@ namespace Coscode {
 
         public Value Add(Value right) {
             switch (Type) {
-                case VType.I32:
-                    return new Value(VType.I32, Data + right.Data);
-                case VType.I64:
-                    return new Value(VType.I64, Data + right.Data);
+                case VType.U32:
+                    return new Value(VType.U32, new ValueUnion(Data.UInt + right.Data.UInt));
+                case VType.U64:
+                    return new Value(VType.U64, new ValueUnion(Data.ULong + right.Data.ULong));
                 case VType.String:
                     List<char> newStr = new List<char>(StrData);
 
@@ -104,10 +154,10 @@ namespace Coscode {
 
         public Value Sub(Value right) {
             switch (Type) {
-                case VType.I32:
-                    return new Value(VType.I32, Data - right.Data);
-                case VType.I64:
-                    return new Value(VType.I64, Data - right.Data);
+                case VType.U32:
+                    return new Value(VType.U32, new ValueUnion(Data.UInt - right.Data.UInt));
+                case VType.U64:
+                    return new Value(VType.U64, new ValueUnion(Data.ULong - right.Data.ULong));
                 default:
                     throw new Exception("Invalid type for subtraction");
             }
@@ -115,10 +165,10 @@ namespace Coscode {
 
         public Value Mul(Value right) {
             switch (Type) {
-                case VType.I32:
-                    return new Value(VType.I32, Data * right.Data);
-                case VType.I64:
-                    return new Value(VType.I64, Data * right.Data);
+                case VType.U32:
+                    return new Value(VType.U32, new ValueUnion(Data.UInt * right.Data.UInt));
+                case VType.U64:
+                    return new Value(VType.U64, new ValueUnion(Data.ULong * right.Data.ULong));
                 default:
                     throw new Exception("Invalid type for multiplication");
             }
@@ -126,10 +176,10 @@ namespace Coscode {
 
         public Value Div(Value right) {
             switch (Type) {
-                case VType.I32:
-                    return new Value(VType.I32, Data / right.Data);
-                case VType.I64:
-                    return new Value(VType.I64, Data / right.Data);
+                case VType.U32:
+                    return new Value(VType.U32, new ValueUnion(Data.UInt / right.Data.UInt));
+                case VType.U64:
+                    return new Value(VType.U64, new ValueUnion(Data.ULong / right.Data.ULong));
                 default:
                     throw new Exception("Invalid type for division");
             }
@@ -137,10 +187,10 @@ namespace Coscode {
 
         public Value GT(Value right) {
             switch (Type) {
-                case VType.I32:
-                    return new Value(Data > right.Data);
-                case VType.I64:
-                    return new Value(Data > right.Data);
+                case VType.U32:
+                    return new Value(VType.Bool, new ValueUnion(Data.UInt > right.Data.UInt));
+                case VType.U64:
+                    return new Value(VType.Bool, new ValueUnion(Data.ULong > right.Data.ULong));
                 default:
                     throw new Exception("Invalid type for >");
             }
@@ -148,22 +198,16 @@ namespace Coscode {
 
         public Value LT(Value right) {
             switch (Type) {
-                case VType.I32:
-                    return new Value(Data < right.Data);
-                case VType.I64:
-                    return new Value(Data < right.Data);
+                case VType.U32:
+                    return new Value(VType.Bool, new ValueUnion(Data.UInt < right.Data.UInt));
+                case VType.U64:
+                    return new Value(VType.Bool, new ValueUnion(Data.ULong < right.Data.ULong));
                 default:
                     throw new Exception("Invalid type for <division>");
             }
         }
 
-        public Value(bool value) {
-            Type = VType.Bool;
-
-            Data = value ? 1u : 0;
-        }
-
-        public Value(VType t, ulong value) {
+        public Value(VType t, ValueUnion value) {
             Type = t;
 
             Data = value;
@@ -176,9 +220,18 @@ namespace Coscode {
         }
     }
 
+    /// <summary>
+    /// VM stack frame representation
+    /// </summary>
     public class Frame {
+        /// <summary>
+        /// Stack slots for storing variables.
+        /// </summary>
         public Value[] Slots = new Value[20];
 
+        /// <summary>
+        /// The return address used to jump back to the caller.
+        /// </summary>
         public long Return = 0;
 
         public Frame() {}
@@ -203,10 +256,21 @@ namespace Coscode {
 
         public Stack<Frame> FrameStack = new Stack<Frame>();
 
+        /// <summary>
+        /// The main stack used for VM operations.
+        /// </summary>
         public Stack<Value> Stack = new Stack<Value>();
 
+        /// <summary>
+        /// Table of function names to their respective offsets.
+        /// </summary>
         public Dictionary<string, long> FuncTable = new Dictionary<string, long>();
 
+        /// <summary>
+        /// List of native functions available to the VM.
+        /// 
+        /// CALL_NATIVE will index into this list to find the native function to call.
+        /// </summary>
         public List<Action<CCVM>> NativeFuncs = new List<Action<CCVM>>();
 
         private void Jump(long offset) {
@@ -261,18 +325,16 @@ namespace Coscode {
                 case Opcode.NOP:
                     break;
                 case Opcode.PUSHUI32:
-                    Stack.Push(new Value(VType.I32, Data.ReadUInt64()));
+                    Stack.Push(new Value(VType.U32, new ValueUnion((uint) Data.ReadUInt64())));
                     break;
                 case Opcode.PUSHUI64:
-                    Stack.Push(new Value(VType.I64, Data.ReadUInt64()));
+                    Stack.Push(new Value(VType.U64, new ValueUnion(Data.ReadUInt64())));
                     break;
                 case Opcode.PUSHSTR:
                     Stack.Push(new Value(VType.String, ReadString(Data.ReadInt64())));
 
                     break;
                 case Opcode.CALL:
-                    // Console.WriteLine($"Call! Data = {Stack.Pop()}");
-
                     long func = ReadFunc(Data.ReadInt64());
 
                     FrameStack.Push(new Frame(Data.BaseStream.Position));
@@ -329,13 +391,13 @@ namespace Coscode {
                     Jump(Data.ReadInt64());
                     break;
                 case Opcode.JE:
-                    if (Stack.Pop().Data == 0)
+                    if (Stack.Pop().Data.Bool)
                         Jump(Data.ReadInt64());
                     
                     break;
 
                 case Opcode.JNE:
-                    if (Stack.Pop().Data != 0)
+                    if (! Stack.Pop().Data.Bool)
                         Jump(Data.ReadInt64());
                     
                     break;
@@ -360,10 +422,32 @@ namespace Coscode {
 
                     left = Stack.Pop();
 
-                    Stack.Push(new Value(left.Equals(right)));
+                    Stack.Push(new Value(VType.Bool, new ValueUnion(left.Equals(right))));
 
                     break;
-                
+                case Opcode.BIT_XOR:
+                    right = Stack.Pop();
+
+                    left = Stack.Pop();
+
+                    Stack.Push(new Value(VType.U64, new ValueUnion(left.Data.ULong ^ right.Data.ULong)));
+
+                    break;
+
+                case Opcode.BIT_NEGATE:
+                    left = Stack.Pop();
+
+                    Stack.Push(new Value(VType.U64, new ValueUnion(~left.Data.ULong)));
+
+                    break;
+                case Opcode.BIT_AND:
+                    right = Stack.Pop();
+
+                    left = Stack.Pop();
+
+                    Stack.Push(new Value(VType.U64, new ValueUnion(left.Data.ULong & right.Data.ULong)));
+
+                    break;
                 default:
                     break;
             }
@@ -379,7 +463,7 @@ namespace Coscode {
 
             if (op >= (byte) Opcode.STORE && op < (byte) Opcode.STORE_END) {
                 if (FrameStack.Count == 0)
-                    throw new Exception("No stack frame available to load from.");
+                    throw new Exception("No stack frame available to store to.");
 
                 Frame f = FrameStack.Peek();
 
@@ -410,6 +494,7 @@ namespace Coscode {
 
             PC = code;
 
+            // Resolve functions
             Data.BaseStream.Seek(funcs, SeekOrigin.Begin);
 
             while (Data.PeekChar() != 0) {

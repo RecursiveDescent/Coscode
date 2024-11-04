@@ -4,5 +4,9 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net6.0</TargetFramework>
   </PropertyGroup>
+
+  <PropertyGroup>
+    <NoWarn>IDE0058, IDE0090, IDE0066, IDE0044</NoWarn>
+  </PropertyGroup>
   
 </Project>

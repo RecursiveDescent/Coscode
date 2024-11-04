@@ -194,7 +194,7 @@ namespace Coscode.Writer {
         /// <summary>
         /// Convert the output stream into bytes.
         /// </summary>
-        /// <returns>A byte array containing the compiled code..</returns>
+        /// <returns>A byte array containing the compiled code.</returns>
         public byte[] GetBytes() {
             return Out.GetBuffer();
         }

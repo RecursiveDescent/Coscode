@@ -102,6 +102,36 @@ namespace Coscode.Assembler {
                 }
             }
 
+            if (Peek() == '=') {
+                Get();
+
+                if (Peek() == '=') {
+                    Get();
+
+                    return new CCToken("Operator", "==");
+                }
+
+                return new CCToken("Operator", "=");
+            }
+
+            if (Peek() == '!') {
+                Get();
+
+                if (Peek() == '=') {
+                    Get();
+
+                    return new CCToken("Operator", "!=");
+                }
+
+                return new CCToken("Operator", "!");
+            }
+
+            if (Peek() == '>')
+                return new CCToken("Operator", Get().ToString());
+
+            if (Peek() == '<')
+                return new CCToken("Operator", Get().ToString());
+
             if (Peek() == '+')
                 return new CCToken("Operator", Get().ToString());
 
@@ -233,7 +263,7 @@ namespace Coscode.Assembler {
                 CCASTNode block = new CCASTNode("Block");
 
                 while (! Lexer.PeekToken().Is("RBrace", "}")) {
-                    block.Children.Add(Expression());
+                    block.Children.Add(Statement());
 
                     if (Lexer.PeekToken().Is("Semicolon", ";"))
                         Lexer.GetToken();
@@ -252,20 +282,20 @@ namespace Coscode.Assembler {
             return null;
         }
 
-        public CCASTNode Expression() {
+        public CCASTNode Statement() {
             if (Lexer.PeekToken().Is("Identifier", "if")) {
                 Lexer.GetToken();
 
                 CCASTNode node = new CCASTNode("If");
 
-                node.Children.Add(Add());
+                node.Children.Add(LogicalCmp());
 
                 Lexer.Expect("LBrace");
 
                 CCASTNode block = new CCASTNode("Block");
 
                 while (! Lexer.PeekToken().Is("RBrace", "}")) {
-                    block.Children.Add(Expression());
+                    block.Children.Add(Statement());
 
                     if (Lexer.PeekToken().Is("Semicolon", ";"))
                         Lexer.GetToken();
@@ -281,6 +311,66 @@ namespace Coscode.Assembler {
                 return node;
             }
 
+            // Merge with if statement logic in the future?
+            if (Lexer.PeekToken().Is("Identifier", "while")) {
+                Lexer.GetToken();
+
+                CCASTNode node = new CCASTNode("While");
+
+                node.Children.Add(LogicalCmp());
+
+                Lexer.Expect("LBrace");
+
+                CCASTNode block = new CCASTNode("Block");
+
+                while (! Lexer.PeekToken().Is("RBrace", "}")) {
+                    block.Children.Add(Statement());
+
+                    if (Lexer.PeekToken().Is("Semicolon", ";"))
+                        Lexer.GetToken();
+
+                    if (Lexer.PeekToken().Type == "EOF")
+                        throw new Exception("Unexpected end of file");
+                }
+
+                Lexer.Expect("RBrace");
+
+                node.Children.Add(block);
+
+                return node;
+            }
+
+            return Expression();
+        }
+
+        public CCASTNode LogicalCmp() {
+            CCASTNode left = Expression();
+
+            while (Lexer.PeekToken().Is("Operator", "==") || Lexer.PeekToken().Is("Operator", "!=")
+                   || Lexer.PeekToken().Is("Operator", ">") || Lexer.PeekToken().Is("Operator", "<")) {
+                CCToken op = Lexer.GetToken();
+
+                string type = op.Value == "==" ? "Equal" : "NotEqual";
+
+                if (op.Value == ">")
+                    type = "GreaterThan";
+
+                if (op.Value == "<")
+                    type = "LessThan";
+
+                CCASTNode node = new CCASTNode(type);
+
+                node.Children.Add(left);
+
+                node.Children.Add(Expression());
+
+                left = node;
+            }
+
+            return left;
+        }
+
+        public CCASTNode Expression() {
             if (Lexer.PeekToken().Is("Identifier", "return")) {
                 Lexer.GetToken();
 
@@ -349,7 +439,7 @@ namespace Coscode.Assembler {
         }
 
         public CCASTNode Div() {
-            CCASTNode left = Primary();
+            CCASTNode left = Unary();
 
             while (Lexer.PeekToken().Is("Operator", "/")) {
                 Lexer.GetToken();
@@ -358,7 +448,7 @@ namespace Coscode.Assembler {
 
                 node.Children.Add(left);
 
-                node.Children.Add(Primary());
+                node.Children.Add(Unary());
 
                 left = node;
             }
@@ -366,8 +456,30 @@ namespace Coscode.Assembler {
             return left;
         }
 
+        public CCASTNode Unary() {
+            if (Lexer.PeekToken().Is("Operator", "!")) {
+                Lexer.GetToken();
+
+                CCASTNode node = new CCASTNode("Not");
+
+                node.Children.Add(Unary());
+
+                return node;
+            }
+
+            return Primary();
+        }
+
         public CCASTNode Primary() {
             CCToken token = Lexer.GetToken();
+
+            if (token.Is("LParen", "(")) {
+                CCASTNode node = LogicalCmp();
+
+                Lexer.Expect("RParen");
+
+                return node;
+            }
 
             if (Lexer.PeekToken().Is("LParen", "(")) {
                 Lexer.GetToken();
@@ -442,7 +554,9 @@ namespace Coscode.Assembler {
                 return;
             }
 
-            if (node.Type == "If") {
+            if (node.Type == "If" || node.Type == "While") {
+                long loopstart = Output.Loc();
+
                 Compile(node.Children[0]);
 
                 DeferredWrite skipjmp = Output.DeferredInstruction((byte) Opcode.JE, 0);
@@ -455,6 +569,10 @@ namespace Coscode.Assembler {
 
                 foreach (CCASTNode child in node.Children[1].Children) {
                     Compile(child);
+                }
+
+                if (node.Type == "While") {
+                    Output.Instruction((byte) Opcode.JMP, loopstart);
                 }
 
                 skipblock.Arg = Output.Loc();
@@ -475,6 +593,12 @@ namespace Coscode.Assembler {
                     return;
                 }
 
+                if (node.Value.Value == "readi32") {
+                    Output.Instruction((byte) Opcode.CALL_NATIVE, 1);
+
+                    return;
+                }
+
                 Output.Instruction((byte) Opcode.CALL, Functions[node.Value.Value]);
 
                 return;
@@ -484,6 +608,65 @@ namespace Coscode.Assembler {
                 Compile(node.Children[0]);
 
                 Output.Instruction((byte) Opcode.RETURN);
+
+                return;
+            }
+
+            if (node.Type == "Equal") {
+                Compile(node.Children[0]);
+
+                Compile(node.Children[1]);
+
+                Output.Instruction((byte) Opcode.CMP);
+
+                return;
+            }
+
+            if (node.Type == "NotEqual") {
+                Compile(node.Children[0]);
+
+                Compile(node.Children[1]);
+
+                Output.Instruction((byte) Opcode.CMP);
+
+                // Bitwise logical negation
+                Output.Instruction((byte) Opcode.BIT_NEGATE);
+
+                Output.Instruction((byte) Opcode.PUSHUI32, 1);
+
+                Output.Instruction((byte) Opcode.BIT_AND);
+
+                return;
+            }
+
+            if (node.Type == "GreaterThan") {
+                Compile(node.Children[0]);
+
+                Compile(node.Children[1]);
+
+                Output.Instruction((byte) Opcode.GT);
+
+                return;
+            }
+
+            if (node.Type == "LessThan") {
+                Compile(node.Children[0]);
+
+                Compile(node.Children[1]);
+
+                Output.Instruction((byte) Opcode.LT);
+
+                return;
+            }
+
+            if (node.Type == "Not") {
+                Compile(node.Children[0]);
+
+                Output.Instruction((byte) Opcode.BIT_NEGATE);
+
+                Output.Instruction((byte) Opcode.PUSHUI32, 1);
+
+                Output.Instruction((byte) Opcode.BIT_AND);
 
                 return;
             }
