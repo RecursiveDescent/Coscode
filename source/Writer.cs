@@ -42,10 +42,19 @@ namespace Coscode.Writer {
         // Strings
         private BinaryWriter Strings = new BinaryWriter(new MemoryStream());
 
+        /// <summary>
+        /// Gets the current position of the code stream.
+        /// </summary>
+        /// <returns>The current position of the code stream.</returns>
         public long Loc() {
             return Code.BaseStream.Position;
         }
 
+        /// <summary>
+        /// Starts a new function definition.
+        /// </summary>
+        /// <param name="name">The name of the function.</param>
+        /// <returns>The position of the function entry in the function table.</returns>
         public long StartFunction(string name) {
             long loc = Code.BaseStream.Position;
 
@@ -64,6 +73,13 @@ namespace Coscode.Writer {
             return pos;
         }
 
+        /// <summary>
+        /// Creates a deferred instruction that can be written later.
+        /// This may be necessary if for example, you need to emit a jump instruction to a location later in the generated code.
+        /// </summary>
+        /// <param name="ins">The instruction opcode.</param>
+        /// <param name="arg">The instruction argument (optional).</param>
+        /// <returns>A DeferredWrite object representing the deferred instruction.</returns>
         public DeferredWrite DeferredInstruction(byte ins, long? arg = null) {
             DeferredWrite write = new DeferredWrite(Code);
 
@@ -78,6 +94,11 @@ namespace Coscode.Writer {
             return write;
         }
 
+        /// <summary>
+        /// Writes a single-byte instruction to the code stream.
+        /// </summary>
+        /// <param name="ins">The instruction opcode.</param>
+        /// <returns>The position of the instruction in the code stream.</returns>
         public long Instruction(byte ins) {
             long pos = Code.BaseStream.Position;
             
@@ -86,6 +107,12 @@ namespace Coscode.Writer {
             return pos;
         }
 
+        /// <summary>
+        /// Writes an instruction with an argument to the code stream.
+        /// </summary>
+        /// <param name="ins">The instruction opcode.</param>
+        /// <param name="arg">The instruction argument.</param>
+        /// <returns>The position of the instruction in the code stream.</returns>
         public long Instruction(byte ins, long arg) {
             long pos = Code.BaseStream.Position;
             
@@ -96,6 +123,12 @@ namespace Coscode.Writer {
             return pos;
         }
 
+        /// <summary>
+        /// Adds a string to the string table.
+        /// </summary>
+        /// <param name="str">The string to add.</param>
+        /// <returns>A reference to the string in the string table.</returns>
+        /// <remarks>Strings are stored as null-terminated strings inside the string table.</remarks>
         public long AddString(string str) {
             long pos = Strings.BaseStream.Position;
 
@@ -115,6 +148,9 @@ namespace Coscode.Writer {
 
             Start of string table: 8 bytes
         */
+        /// <summary>
+        /// Finishes the compilation and writes the code to the output stream.
+        /// </summary>
         public void Finish() {
             long hsize = 64;
 
@@ -155,6 +191,10 @@ namespace Coscode.Writer {
             Out.WriteByte(0); // Terminate function table with a null byte
         }
 
+        /// <summary>
+        /// Convert the output stream into bytes.
+        /// </summary>
+        /// <returns>A byte array containing the compiled code..</returns>
         public byte[] GetBytes() {
             return Out.GetBuffer();
         }

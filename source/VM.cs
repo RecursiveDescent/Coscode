@@ -469,8 +469,12 @@ namespace Coscode {
 
                         Console.WriteLine($"PUSHSTR ({str})[\"{new string(ReadString(str).ToArray())}\"]");
                         break;
+                    case (byte) Opcode.JE:
+                        Console.WriteLine($"JE {Data.ReadUInt64()}");
+
+                        break;
                     case (byte) Opcode.JMP:
-                        Console.WriteLine($"JMP {Data.ReadInt64()}");
+                        Console.WriteLine($"JMP {Data.ReadUInt64()}");
 
                         break;
                     case (byte) Opcode.ADD:
