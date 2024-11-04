@@ -34,6 +34,14 @@ namespace Coscode {
         BIT_XOR = 20,
         BIT_SHL = 21,
         BIT_SHR = 22,
+
+        // Object related instructions
+
+        CREATE_OBJ = 23,
+
+        OBJ_SET = 24,
+
+        OBJ_GET = 25,
         
         // Range of load instructions
         LOAD = 100,
@@ -55,16 +63,23 @@ namespace Coscode {
         U32,
         U64,
         String,
-        Ref
+        Ref, // Unused
+        Object
     }
 
-    // This is a union type used to save memory space.
+    /// <summary>
+    /// This causes the struct to behave like a union, saving space in memory.
+    /// 
+    /// It is unknown if COSMOS actually respects StructLayout.
+    /// </summary>
     #pragma warning disable CS0660
     #pragma warning disable CS0661
     [StructLayout(LayoutKind.Explicit)]
 	public struct ValueUnion {
         [FieldOffset(0)]
 		public bool Bool = false;
+        [FieldOffset(0)]
+		public char Char = (char) 0;
 		[FieldOffset(0)]
 		public float Float = 0;
 		[FieldOffset(0)]
@@ -88,6 +103,10 @@ namespace Coscode {
             Bool = b;
         }
 
+        public ValueUnion(char c) {
+            Char = c;
+        }
+
         public ValueUnion(float f) {
             Float = f;
         }
@@ -104,12 +123,17 @@ namespace Coscode {
     public class Value {
         public VType Type;
 
-        // Strings are represented as a list to avoid allocations.
+        /// <summary>
+        /// Strings are represented as a list to avoid allocations. (Strings are immutable in C#)
+        /// </summary>
         public List<char> StrData = null;
 
         public ValueUnion Data;
 
+        // Unused
         public Value Ref = null;
+
+        public List<Value> ObjectData = null;
 
         public override string ToString()
         {
@@ -205,6 +229,13 @@ namespace Coscode {
                 default:
                     throw new Exception("Invalid type for <division>");
             }
+        }
+
+        public Value(VType t) {
+            Type = t;
+
+            if (t == VType.Object)
+                ObjectData = new List<Value>();
         }
 
         public Value(VType t, ValueUnion value) {
@@ -446,6 +477,30 @@ namespace Coscode {
                     left = Stack.Pop();
 
                     Stack.Push(new Value(VType.U64, new ValueUnion(left.Data.ULong & right.Data.ULong)));
+
+                    break;
+                case Opcode.CREATE_OBJ:
+                    Stack.Push(new Value(VType.Object));
+
+                    break;
+                case Opcode.OBJ_SET:
+                    left = Stack.Pop(); // Value
+
+                    right = Stack.Pop(); // Subject
+
+                    if (right.Type != VType.Object)
+                        throw new Exception("Can't index a non-object value.");
+                    
+                    right.ObjectData[(int) Data.ReadInt64()] = left;
+
+                    break;
+                case Opcode.OBJ_GET:
+                    left = Stack.Pop(); // Subject
+
+                     if (left.Type != VType.Object)
+                        throw new Exception("Can't index a non-object value.");
+
+                    Stack.Push(left.ObjectData[(int) Data.ReadInt64()]);
 
                     break;
                 default:

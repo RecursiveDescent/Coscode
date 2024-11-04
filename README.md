@@ -38,6 +38,15 @@ Each opcode with an argument reads an 8 byte value, otherwise the instruction is
 | GT             | 14    | Greater than comparison                     | None              |
 | LT             | 15    | Less than comparison                        | None              |
 | CMP            | 16    | Compare top two stack values                | None              |
+| BIT_NEGATE     | 17    | Bitwise negate                              | None              |
+| BIT_AND        | 18    | Bitwise AND                                 | 8 bytes           |
+| BIT_OR         | 19    | Bitwise OR                                  | 8 bytes           |
+| BIT_XOR        | 20    | Bitwise XOR                                 | 8 bytes           |
+| BIT_SHL         | 21    | Bitwise shift left                         | 8 bytes           |
+| BIT_SHR         | 22    | Bitwise shift right                        | 8 bytes           |
+| CREATE_OBJ      | 23    | Create object value                        | None              |
+| OBJ_SET         | 24    | Set object value                           | 8 bytes (member slot) |
+| OBJ_GET         | 25    | Get object value                           | 8 bytes (member slot) |
 | LOAD_0         | 100   | Load value from slot 0                      | None              |
 | ...            |101-109|                                             | None              |
 | LOAD_END       | 110   | End of load instructions                    | None              |
