@@ -571,6 +571,7 @@ namespace Coscode.Assembler {
                     Compile(child);
                 }
 
+                // A while is just the same code but with an extra jump to the top of the loop.
                 if (node.Type == "While") {
                     Output.Instruction((byte) Opcode.JMP, loopstart);
                 }
