@@ -4,6 +4,21 @@ A bytecode format I started for fun.
 
 Should be compatible with [COSMOS](https://github.com/CosmosOS/Cosmos/), but currently untested.
 
+This format is incomplete and the specification is subject to change drastically in the future.
+
+# Features
+
+- [x] Relatively emory efficient
+- [x] Realistic layout. There are separate sections for code/data/etc.
+- [x] Utility class to assist in creating bytecode executables.
+- [x] Basic language that compiles to bytecode.
+
+# Planned
+
+- [ ] Redesign header to allow custom sections.
+- [ ] Define debug information format.
+- [ ] Implement debugger.
+
 ## Format
 
 ### Header
