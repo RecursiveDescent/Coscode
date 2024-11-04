@@ -63,8 +63,8 @@ Each opcode with an argument reads an 8 byte value, otherwise the instruction is
 | BIT_SHL        | 21    | Bitwise shift left                          | None              |
 | BIT_SHR        | 22    | Bitwise shift right                         | None              |
 | CREATE_OBJ     | 23    | Create object value                         | None              |
-| OBJ_SET        | 24    | Set object value                            | 8 bytes (member slot) |
-| OBJ_GET        | 25    | Get object value                            | 8 bytes (member slot) |
+| OBJ_SET        | 24    | Set object member                           | 8 bytes (member slot) |
+| OBJ_GET        | 25    | Get object member                           | 8 bytes (member slot) |
 | LOAD_0         | 100   | Load value from slot 0                      | None              |
 | ...            |101-109|                                             | None              |
 | LOAD_END       | 110   | End of load instructions                    | None              |
