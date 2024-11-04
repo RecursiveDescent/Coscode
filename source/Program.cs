@@ -15,9 +15,9 @@ namespace Coscode {
             vm.Stack.Push(new Value(VType.U32, new ValueUnion(uint.Parse(Console.ReadLine()))));
         }
 
-        public static void Main()
+        public static void Main(string[] args)
         {
-            CCWriter wr = new CCWriter();
+            // CCWriter wr = new CCWriter();
 
             // long str = wr.AddString("Hello World!");
 
@@ -55,7 +55,13 @@ namespace Coscode {
 
             // wr.Finish();
 
-            CCCompiler compiler = new CCCompiler(new StreamReader("factorial_example.cc").ReadToEnd());
+            if (args.Length < 1) {
+                Console.WriteLine("Expected source file.");
+
+                return;
+            }
+
+            CCCompiler compiler = new CCCompiler(new StreamReader(args[0]).ReadToEnd());
 
             compiler.Compile();
 
