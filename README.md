@@ -1,14 +1,16 @@
 # Coscode
 
-A bytecode format I started for fun.
+A custom stack-based bytecode format focused on being useful and closer to a geniune executable format.
 
 Should be compatible with [COSMOS](https://github.com/CosmosOS/Cosmos/), but currently untested.
 
 This format is incomplete and the specification is subject to change drastically in the future.
 
+*Keep in mind that just because the example language compiler does not support a feature yet, doesn't mean the bytecode is incapable of it. The language itself is also incomplete.*
+
 # Features
 
-- [x] Relatively emory efficient
+- [x] Relatively memory efficient
 - [x] Realistic layout. There are separate sections for code/data/etc.
 - [x] Utility class to assist in creating bytecode executables.
 - [x] Basic language that compiles to bytecode.
@@ -18,6 +20,7 @@ This format is incomplete and the specification is subject to change drastically
 - [ ] Redesign header to allow custom sections.
 - [ ] Define debug information format.
 - [ ] Implement debugger.
+- [ ] Basic JIT capability. (No guarantee that this is possible, but not going to try unless it has a high demand)
 
 ## Format
 
