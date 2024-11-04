@@ -63,6 +63,10 @@ namespace Coscode {
 
             CCCompiler compiler = new CCCompiler(new StreamReader(args[0]).ReadToEnd());
 
+            compiler.NativeMapping["print"] = 0;
+
+            compiler.NativeMapping["readi32"] = 1;
+
             compiler.Compile();
 
             CCVM vm = new CCVM(compiler.Output.GetBytes());

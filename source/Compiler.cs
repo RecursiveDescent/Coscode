@@ -523,6 +523,8 @@ namespace Coscode.Assembler {
 
         public Dictionary<string, long> FunctionCode = new Dictionary<string, long>();
 
+        public Dictionary<string, int> NativeMapping = new Dictionary<string, int>();
+
         private CCASTNode CurrentFunc = null;
 
         public void Compile(CCASTNode node) {
@@ -588,14 +590,8 @@ namespace Coscode.Assembler {
                     Compile(arg);
                 }
 
-                if (node.Value.Value == "print") {
-                    Output.Instruction((byte) Opcode.CALL_NATIVE, 0);
-
-                    return;
-                }
-
-                if (node.Value.Value == "readi32") {
-                    Output.Instruction((byte) Opcode.CALL_NATIVE, 1);
+                if (NativeMapping.ContainsKey(node.Value.Value)) {
+                    Output.Instruction((byte) Opcode.CALL_NATIVE, NativeMapping[node.Value.Value]);
 
                     return;
                 }
