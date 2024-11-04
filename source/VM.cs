@@ -613,6 +613,10 @@ namespace Coscode {
                         Console.WriteLine($"JE {Data.ReadUInt64()}");
 
                         break;
+                    case (byte) Opcode.JNE:
+                        Console.WriteLine($"JNE {Data.ReadInt64()}");
+
+                        break;
                     case (byte) Opcode.JMP:
                         Console.WriteLine($"JMP {Data.ReadUInt64()}");
 
@@ -635,8 +639,20 @@ namespace Coscode {
                     case (byte) Opcode.CALL_NATIVE:
                         Console.WriteLine($"CALL_NATIVE {Data.ReadInt64()}");
                         break;
+                    case (byte) Opcode.BIT_AND:
+                        Console.WriteLine($"BIT_AND {Data.ReadInt64()}");
+
+                        break;
+                    case (byte) Opcode.OBJ_SET:
+                        Console.WriteLine($"OBJ_SET {Data.ReadInt64()}");
+
+                        break;
+                    case (byte) Opcode.OBJ_GET:
+                        Console.WriteLine($"OBJ_GET {Data.ReadInt64()}");
+
+                        break;
                     default:
-                        Console.WriteLine($"{(Opcode) op}");
+                        Console.WriteLine((Opcode) op);
                         break;
                 }
             }

@@ -744,8 +744,6 @@ namespace Coscode.Assembler {
         public void Compile() {
             DeferredWrite skiptomain = Output.DeferredInstruction((byte) Opcode.JMP, 0);
 
-            Console.WriteLine(Output.Out.Position);
-
             while (true) {
                 CCASTNode next = Parser.TopLevel();
 
