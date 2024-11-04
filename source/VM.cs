@@ -479,6 +479,22 @@ namespace Coscode {
                     Stack.Push(new Value(VType.U64, new ValueUnion(left.Data.ULong & right.Data.ULong)));
 
                     break;
+                case Opcode.BIT_SHL:
+                    right = Stack.Pop();
+
+                    left = Stack.Pop();
+
+                    Stack.Push(new Value(VType.U64, new ValueUnion(left.Data.ULong << (int)right.Data.ULong)));
+
+                    break;
+                case Opcode.BIT_SHR:
+                    right = Stack.Pop();
+
+                    left = Stack.Pop();
+
+                    Stack.Push(new Value(VType.U64, new ValueUnion(left.Data.ULong >> (int)right.Data.ULong)));
+
+                    break;
                 case Opcode.CREATE_OBJ:
                     Stack.Push(new Value(VType.Object));
 
